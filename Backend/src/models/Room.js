@@ -1,105 +1,142 @@
-import mongoose from "mongoose";
-import participantSchema from "./Participant.js";
+const mongoose = require("mongoose");
 
-
-// =====================================================
-// PLAYBACK STATE
-// =====================================================
-
-const playbackStateSchema = new mongoose.Schema(
+const participantSchema = new mongoose.Schema(
   {
-    // YouTube video ID, not the complete YouTube URL.
-    // Example: dQw4w9WgXcQ
+    userId: {
+      type: String,
+      required: true,
+    },
+    username: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 30,
+    },
+    role: {
+      type: String,
+      enum: ["HOST", "MODERATOR", "PARTICIPANT"],
+      default: "PARTICIPANT",
+    },
+  },
+  { _id: false }
+);
+
+const requestSchema = new mongoose.Schema(
+  {
+    requestId: {
+      type: String,
+      required: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+    },
+    username: {
+      type: String,
+      required: true,
+    },
+    action: {
+      type: String,
+      enum: ["PLAY", "PAUSE", "SEEK", "CHANGE_VIDEO"],
+      required: true,
+    },
+    payload: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    status: {
+      type: String,
+      enum: ["PENDING", "APPROVED", "REJECTED"],
+      default: "PENDING",
+    },
+    resolvedBy: {
+      type: String,
+      default: null,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
+const messageSchema = new mongoose.Schema(
+  {
+    messageId: {
+      type: String,
+      required: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+    },
+    username: {
+      type: String,
+      required: true,
+    },
+    message: {
+      type: String,
+      required: true,
+      maxlength: 500,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+const roomSchema = new mongoose.Schema(
+  {
+    roomId: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      index: true,
+    },
+    hostId: {
+      type: String,
+      default: null,
+    },
+    participants: {
+      type: [participantSchema],
+      default: [],
+    },
     videoId: {
       type: String,
       default: null,
-      trim: true,
     },
-
     playState: {
       type: String,
-
-      enum: [
-        "PLAYING",
-        "PAUSED",
-      ],
-
+      enum: ["PLAYING", "PAUSED"],
       default: "PAUSED",
     },
-
-    // Current position of video in seconds.
     currentTime: {
       type: Number,
       default: 0,
       min: 0,
     },
-
-    // Useful for knowing when state was changed.
-    updatedAt: {
+    stateUpdatedAt: {
       type: Date,
       default: Date.now,
     },
-  },
-
-  {
-    _id: false,
-  }
-);
-
-
-// =====================================================
-// ROOM
-// =====================================================
-
-const roomSchema = new mongoose.Schema(
-  {
-    // Six-character code users can use to join.
-    roomCode: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-      trim: true,
-      minlength: 6,
-      maxlength: 6,
-    },
-
-    // User who owns the room.
-    host: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-    // All users currently belonging to the room.
-    participants: {
-      type: [participantSchema],
+    pendingRequests: {
+      type: [requestSchema],
       default: [],
     },
-
-    // Current synchronized YouTube state.
-    playback: {
-      type: playbackStateSchema,
-
-      default: () => ({
-        videoId: null,
-        playState: "PAUSED",
-        currentTime: 0,
-        updatedAt: new Date(),
-      }),
-    },
-
-    isActive: {
-      type: Boolean,
-      default: true,
+    messages: {
+      type: [messageSchema],
+      default: [],
     },
   },
-
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Room = mongoose.model("Room", roomSchema);
-
-export default Room;
+module.exports = mongoose.model("Room", roomSchema);

@@ -1,85 +1,22 @@
-import express from "express";
-import cors from "cors";
-
-import env from "./config/env.js";
-
-import routes from "./routes.js";
-
-import {
-  notFoundMiddleware,
-} from "./middlewares/notFoundMiddleware.js";
-
-import {
-  errorMiddleware,
-} from "./middlewares/errorMiddleware.js";
-
+const express = require("express");
+const cors = require("cors");
+const roomRoutes = require("./routes/roomRoutes");
+const errorMiddleware = require("./middleware/errorMiddleware");
 
 const app = express();
 
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+app.use(express.json({ limit: "100kb" }));
 
-// =====================================================
-// GLOBAL MIDDLEWARE
-// =====================================================
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "Watch Party backend is running",
+  });
+});
 
-// Allow frontend to communicate with backend.
-app.use(
-  cors({
-    origin: env.clientUrl,
-  })
-);
+app.use("/api/rooms", roomRoutes);
 
+app.use(errorMiddleware);
 
-// Parse JSON request bodies.
-app.use(
-  express.json()
-);
-
-
-// Parse URL encoded data.
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
-
-
-// =====================================================
-// HEALTH CHECK
-// =====================================================
-
-app.get(
-  "/",
-  (req, res) => {
-    res.status(200).json({
-      success: true,
-      message:
-        "YouTube Watch Party API is running",
-    });
-  }
-);
-
-
-// =====================================================
-// API ROUTES
-// =====================================================
-
-app.use(
-  "/api",
-  routes
-);
-
-
-// =====================================================
-// ERROR HANDLING
-// =====================================================
-
-app.use(
-  notFoundMiddleware
-);
-
-app.use(
-  errorMiddleware
-);
-
-
-export default app;
+module.exports = app;

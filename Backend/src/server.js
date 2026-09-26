@@ -1,59 +1,34 @@
-import http from "http";
+require("dotenv").config();
 
-import app from "./app.js";
+const http = require("http");
+const { Server } = require("socket.io");
+const app = require("./app");
+const connectDB = require("./config/db");
+const initializeSocket = require("./socket/socketHandler");
 
-import env from "./config/env.js";
+const PORT = Number(process.env.PORT) || 5000;
+const server = http.createServer(app);
 
-import connectDatabase from "./config/database.js";
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
 
-import {
-  createSocketServer,
-} from "./sockets/socketServer.js";
-
-
-// =====================================================
-// START APPLICATION
-// =====================================================
+initializeSocket(io);
 
 const startServer = async () => {
   try {
-    // Connect MongoDB first.
-    await connectDatabase();
+    await connectDB();
 
-
-    // Create HTTP server using Express.
-    const httpServer =
-      http.createServer(app);
-
-
-    // Attach Socket.IO to same server.
-    createSocketServer(
-      httpServer
-    );
-
-
-    // Start listening.
-    httpServer.listen(
-      env.port,
-      () => {
-        console.log(
-          `Server running on port ${env.port}`
-        );
-
-        console.log(
-          `http://localhost:${env.port}`
-        );
-      }
-    );
+    server.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   } catch (error) {
-    console.error(
-      "Server startup failed:",
-      error
-    );
-
+    console.error("Server startup failed:", error.message);
     process.exit(1);
   }
 };
-
 
 startServer();
